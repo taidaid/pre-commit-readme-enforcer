@@ -1,0 +1,34 @@
+{
+  "name": "pre-commit-readme-enforcer",
+  "version": "1.0.0",
+  "description": "Pre-commit hook to ensure README files are updated with code changes",
+  "main": "check-readme-updated.js",
+  "bin": {
+    "check-readme-updated": "./check-readme-updated.js"
+  },
+  "scripts": {
+    "build": "tsc check-readme-updated.ts --outDir . --target ES2020 --module CommonJS",
+    "start": "node check-readme-updated.js",
+    "dev": "ts-node check-readme-updated.ts",
+    "test": "node check-readme-updated.js",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "git",
+    "pre-commit",
+    "readme",
+    "documentation",
+    "hook"
+  ],
+  "author": "Bryan Windsor",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "husky": "^9.1.7",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
