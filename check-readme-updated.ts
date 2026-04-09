@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /**
  * Pre-commit hook to ensure README files are updated when code changes are made.
  * 

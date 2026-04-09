@@ -1,6 +1,6 @@
 {
   "name": "pre-commit-readme-enforcer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Pre-commit hook to ensure README files are updated with code changes",
   "repository": {
     "type": "git",
