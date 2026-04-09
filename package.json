@@ -2,6 +2,14 @@
   "name": "pre-commit-readme-enforcer",
   "version": "1.0.0",
   "description": "Pre-commit hook to ensure README files are updated with code changes",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/taidaid/pre-commit-readme-enforcer.git"
+  },
+  "homepage": "https://github.com/taidaid/pre-commit-readme-enforcer",
+  "bugs": {
+    "url": "https://github.com/taidaid/pre-commit-readme-enforcer/issues"
+  },
   "main": "check-readme-updated.js",
   "bin": {
     "check-readme-updated": "./check-readme-updated.js"
@@ -11,8 +19,14 @@
     "start": "node check-readme-updated.js",
     "dev": "ts-node check-readme-updated.ts",
     "test": "node check-readme-updated.js",
-    "prepare": "husky"
+    "prepack": "npm run build",
+    "hooks:install": "husky"
   },
+  "files": [
+    "check-readme-updated.js",
+    "README.md",
+    "LICENSE"
+  ],
   "keywords": [
     "git",
     "pre-commit",

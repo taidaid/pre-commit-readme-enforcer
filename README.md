@@ -51,36 +51,18 @@ The pre-commit hook:
 
 ## TL;DR - Quick Start
 
-**Example: Adding this to a project called "my-awesome-app"**
+**For most projects, install as a dev dependency and wire it into Husky:**
 
 ```bash
-# 1. Download this README enforcer tool
-git clone https://github.com/taidaid/pre-commit-readme-enforcer.git
-cd pre-commit-readme-enforcer
-
-# 2. Build the tool
-./build.sh
-
-# 3. Copy the tool to your project (replace with your actual project path)
-cp check-readme-updated.js ../my-awesome-app/
-cd ../my-awesome-app
-
-# 4. Set up the git hook in your project
-npm install --save-dev husky
-
-# Add the prepare script to package.json (do this manually or use the command below)
-# Option A: Add manually - open package.json and add "prepare": "husky" to the scripts section
-# Option B: Use this command (advanced users)
-npm pkg set scripts.prepare="husky"
-
-npm run prepare
-echo "node check-readme-updated.js" > .husky/pre-commit
+# In your project repository
+npm install --save-dev pre-commit-readme-enforcer husky
+npm pkg set scripts["hooks:install"]="husky"
+npm run hooks:install
+echo "npx check-readme-updated" > .husky/pre-commit
 chmod +x .husky/pre-commit
-
-# 5. Done! Now every commit will check for README updates
 ```
 
-**Replace `my-awesome-app` with your actual project name/path.**
+Now commits will fail when staged code changes are missing required README updates.
 
 ## Installation
 
@@ -118,64 +100,55 @@ Should show something like `git version 2.30.0` or higher. If not, [install git 
 #### ✅ Basic Terminal/Command Line Knowledge
 You should be comfortable running commands in Terminal (Mac/Linux) or Command Prompt (Windows).
 
-### Quick Setup (Recommended)
+### Consumption Options
 
-**To use this hook in your own project:**
+Choose the setup that fits your workflow.
 
-1. **Download this project:**
-   ```bash
-   git clone https://github.com/taidaid/pre-commit-readme-enforcer.git
-   cd pre-commit-readme-enforcer
-   ```
+#### Option A (Recommended): Project dev dependency
 
-2. **Build the hook:**
-   ```bash
-   chmod +x build.sh && ./build.sh
-   ```
+Use this when you want your whole team to get the same behavior from the repo config.
 
-3. **Copy the compiled hook to your project:**
-   ```bash
-   # Replace 'my-project' with your actual project directory name
-   cp check-readme-updated.js ../my-project/
-   cd ../my-project
-   ```
-   
-   **💡 Tip**: If your project is somewhere else, use the full path:
-   ```bash
-   cp check-readme-updated.js ~/Documents/my-project/
-   cd ~/Documents/my-project
-   ```
+```bash
+# In your project repository
+npm install --save-dev pre-commit-readme-enforcer husky
+npm pkg set scripts["hooks:install"]="husky"
+npm run hooks:install
+echo "npx check-readme-updated" > .husky/pre-commit
+chmod +x .husky/pre-commit
+```
 
-4. **Set up Husky in your project:**
-   ```bash
-   npm install --save-dev husky
-   ```
-   
-   **Add the prepare script to your package.json file:**
-   
-   **Option A (Recommended for beginners)**: Open `package.json` in a text editor and add `"prepare": "husky"` to the scripts section like this:
-   ```json
-   {
-     "scripts": {
-       "start": "node server.js",
-       "prepare": "husky"
-     }
-   }
-   ```
-   
-   **Option B (Command line)**: 
-   ```bash
-   npm pkg set scripts.prepare="husky"
-   ```
-   
-   **Then finish the setup:**
-   ```bash
-   npm run prepare
-   echo "node check-readme-updated.js" > .husky/pre-commit
-   chmod +x .husky/pre-commit
-   ```
+#### Option B: Global CLI install
 
-5. **Done!** The hook will now run automatically on every commit in your project.
+Use this if you prefer a globally installed command and reference it from hooks.
+
+```bash
+npm install -g pre-commit-readme-enforcer
+```
+
+Then in each target project:
+
+```bash
+npm install --save-dev husky
+npm pkg set scripts["hooks:install"]="husky"
+npm run hooks:install
+echo "check-readme-updated" > .husky/pre-commit
+chmod +x .husky/pre-commit
+```
+
+#### Option C: One-off execution with npx
+
+Run without adding the package permanently:
+
+```bash
+# Manual one-off check (does not install a git hook)
+npx pre-commit-readme-enforcer
+```
+
+For hooks, prefer Option A so installs are reproducible for all contributors.
+
+#### Option D: Build-from-source / manual copy
+
+Use this if you need to pin to a local fork or offline artifact.
 
 ### Manual Setup
 
@@ -207,17 +180,21 @@ If you prefer to set up manually:
 5. **Set up Husky in your project:**
    Follow the same steps as in the Quick Setup above:
    - Install husky: `npm install --save-dev husky`
-   - Add prepare script to package.json (manually or with `npm pkg set`)
+   - Add hooks install script to package.json (manually or with `npm pkg set`)
    - Run the remaining setup commands
 
-### Alternative: Pre-built Binary (Coming Soon)
+### Alternative: Build From Source
 
-We're working on making this even easier! In the future, you'll be able to install this with just:
+If you need to build locally from this repository:
+
 ```bash
-npm install -g readme-enforcer
+git clone https://github.com/taidaid/pre-commit-readme-enforcer.git
+cd pre-commit-readme-enforcer
+npm install
+npm run build
 ```
 
-Currently, you need to build from source using the methods above.
+Then copy `check-readme-updated.js` into your target project and wire it into `.husky/pre-commit`.
 
 ### For Advanced Users: Python Pre-commit Framework
 
@@ -335,7 +312,7 @@ chmod +x build.sh
 **Solution**: 
 1. Make sure you're in your project directory (not the enforcer directory)
 2. Check if `.husky/pre-commit` exists: `ls -la .husky/`
-3. Re-run the setup: `npm run prepare`
+3. Re-run the setup: `npm run hooks:install`
 
 #### "npm: command not found" for npm pkg set
 **Problem**: Older npm version doesn't support `pkg set`.
@@ -343,7 +320,7 @@ chmod +x build.sh
 ```json
 {
   "scripts": {
-    "prepare": "husky"
+    "hooks:install": "husky"
   }
 }
 ```
@@ -423,6 +400,12 @@ The hook works out of the box with no configuration needed. It automatically:
 
 ---
 
+## License
+
+This project is licensed under the MIT License. See [`LICENSE`](LICENSE).
+
+---
+
 ## 📄 Project Status
 
 - ✅ **Stable and ready to use**
@@ -432,5 +415,5 @@ The hook works out of the box with no configuration needed. It automatically:
 
 Built by developers, for developers who care about documentation.
 
-Last updated: 2024-12-08
+Last updated: 2026-04-09
 
