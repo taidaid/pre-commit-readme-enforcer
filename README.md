@@ -97,10 +97,52 @@ repos:
 
 ## Configuration
 
-No config file. Behavior:
+No config file for the default staged-README check.
 
-- README detection: filenames beginning with `readme` (any case).
-- Matching: nearest README per staged code path; **all** of them must be staged when any listed code is staged.
+### Default behavior (always on)
+
+- **README detection:** filenames beginning with `readme` (any case).
+- **Matching:** nearest README per staged code path; **all** of them must be staged when any listed code is staged.
+
+### Optional: root README reachability (opt-in)
+
+When enabled, the hook also verifies that **every tracked `readme*` file** is reachable from a single **root README** by following **relative** inline Markdown links `[text](relative-path)` from file to file (BFS). Cycles and multiple incoming links are allowed; only **orphan** READMEs (never linked from the root’s component) fail the check.
+
+- **Root README:** tracked `readme*` at the repository root (path with no `/`). Preference order: `README.md`, then `readme.md`; otherwise the first path when sorted with `en` locale. The hook prints which root was used.
+- **Link sources:** only `.md` / `.markdown` readmes are scanned for outbound links. Other `readme*` files (e.g. `readme.txt`) can still be targets but do not contribute links.
+- **Graph:** nodes are tracked `readme*` paths from `git ls-files`. Untracked READMEs are ignored.
+
+**Enable with an environment variable** (e.g. Husky):
+
+```bash
+echo 'README_ENFORCE_INTERLINK=1 npx check-readme-updated' > .husky/pre-commit
+chmod +x .husky/pre-commit
+```
+
+**Enable with a CLI flag** (e.g. Python `pre-commit` `args`):
+
+```yaml
+repos:
+  - repo: https://github.com/taidaid/pre-commit-readme-enforcer
+    rev: main
+    hooks:
+      - id: check-readme-updated
+        args: [--enforce-readme-interlink]
+```
+
+You can combine both; either is sufficient.
+
+**Manual run:**
+
+```bash
+README_ENFORCE_INTERLINK=1 npx check-readme-updated
+# or
+npx check-readme-updated --enforce-readme-interlink
+```
+
+If the root-level README rule cannot be satisfied (no tracked root `readme*`), the reachability check exits with an error when opt-in is on.
+
+**Performance:** with opt-in, each commit reads every tracked README for link parsing—fine for typical repos; very large documentation trees may prefer running this check in CI instead.
 
 ## Troubleshooting
 
@@ -113,6 +155,8 @@ No config file. Behavior:
 **`npx husky` errors** — Run `git status` in a git repo; run `npm install`; use Node 18+ for Husky 9.
 
 **Hook runs but “no README”** — Add a README (e.g. `README.md`) where the tool expects it, or adjust your layout.
+
+**Hook runs but “README reachability failed”** — Ensure the root README links (directly or transitively) to every other tracked `readme*` using relative inline Markdown links. See [Configuration](#configuration).
 
 **Still stuck** — [Open an issue](https://github.com/taidaid/pre-commit-readme-enforcer/issues) with OS, `node --version`, the exact error, and commands you ran.
 
@@ -128,7 +172,13 @@ cd pre-commit-readme-enforcer
 
 - `npm run build` — compile TypeScript  
 - `npm run dev` — run via ts-node  
-- `npm start` / `npm test` — run compiled hook  
+- `npm start` / `npm test` — build, run `node --test` reachability tests, then smoke-run the hook  
+
+### Releasing to npm
+
+1. Update [`CHANGELOG.md`](CHANGELOG.md) and the `version` field in [`package.json`](package.json) (this repo does not run `npm version` automatically).
+2. From a clean tree, run `npm test` (also runs automatically via `prepublishOnly` on publish).
+3. `npm publish` (uses `prepack` to compile TypeScript before the tarball is built). Use `npm publish --dry-run` first if you want to inspect the pack without uploading.
 
 ## License
 

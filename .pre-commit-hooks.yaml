@@ -1,6 +1,6 @@
 -   id: check-readme-updated
     name: Check README Updated
-    description: Ensures README files are updated when code changes are made
+    description: Ensures nearest READMEs are staged with code changes; optional README reachability (args / README_ENFORCE_INTERLINK)
     entry: check-readme-updated.js
     language: node
     files: '.*'

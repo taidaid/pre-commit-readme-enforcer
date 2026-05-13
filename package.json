@@ -1,7 +1,7 @@
 {
   "name": "pre-commit-readme-enforcer",
-  "version": "1.0.3",
-  "description": "Pre-commit hook to ensure README files are updated with code changes",
+  "version": "1.1.0",
+  "description": "Pre-commit hook: stage nearest READMEs with code changes; optional root README reachability over relative Markdown links",
   "repository": {
     "type": "git",
     "url": "https://github.com/taidaid/pre-commit-readme-enforcer.git"
@@ -18,11 +18,14 @@
     "build": "tsc check-readme-updated.ts --outDir . --target ES2020 --module CommonJS",
     "start": "node check-readme-updated.js",
     "dev": "ts-node check-readme-updated.ts",
-    "test": "node check-readme-updated.js",
-    "prepack": "npm run build"
+    "test": "npm run build && node --test test/readme-reachability.test.cjs && node check-readme-updated.js",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm test"
   },
   "files": [
     "check-readme-updated.js",
+    ".pre-commit-hooks.yaml",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE"
   ],
@@ -31,6 +34,8 @@
     "pre-commit",
     "readme",
     "documentation",
+    "readme-links",
+    "husky",
     "hook"
   ],
   "author": "Bryan Windsor",
