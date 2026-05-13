@@ -1,6 +1,6 @@
 {
   "name": "pre-commit-readme-enforcer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Pre-commit hook to ensure README files are updated with code changes",
   "repository": {
     "type": "git",
@@ -19,8 +19,7 @@
     "start": "node check-readme-updated.js",
     "dev": "ts-node check-readme-updated.ts",
     "test": "node check-readme-updated.js",
-    "prepack": "npm run build",
-    "hooks:install": "husky"
+    "prepack": "npm run build"
   },
   "files": [
     "check-readme-updated.js",

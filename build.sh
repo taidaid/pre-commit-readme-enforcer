@@ -30,7 +30,7 @@ echo "✅ Making the compiled script executable..."
 chmod +x check-readme-updated.js
 
 echo "🔗 Setting up git hooks with Husky..."
-npm run prepare
+npx husky
 
 echo "🔄 Updating hook to newer Husky format..."
 echo "node check-readme-updated.js" > .husky/pre-commit
