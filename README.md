@@ -214,7 +214,50 @@ repos:
 
 ## Configuration
 
-No config file for the default staged-README check.
+No config is required for the default staged-README check. Optional ignore rules let you skip the nearest-README requirement for certain paths (generated code, lockfiles, vendored deps, and so on). Ignore rules apply only to the staged-README check, not to opt-in README reachability.
+
+### Optional: ignore paths (staged-README check)
+
+Define patterns in **either or both** of:
+
+- **`.readme-enforcerignore`** at the repository root — one pattern per line; `#` starts a comment; blank lines are ignored.
+- **`package.json`** — `"readmeEnforcer": { "ignore": ["vendor/", "*.lock"] }`
+
+When both exist, patterns are **merged** (union). Invalid `package.json` (parse error or non-array `ignore`) is skipped so a broken manifest does not block commits.
+
+**`.readme-enforcerignore` example:**
+
+```
+# Vendored and generated code
+vendor/
+generated/
+
+# Lockfiles
+*.lock
+
+# Single file
+scripts/codegen.ts
+```
+
+**`package.json` example:**
+
+```json
+{
+  "readmeEnforcer": {
+    "ignore": ["vendor/", "*.lock", "scripts/codegen.ts"]
+  }
+}
+```
+
+**Supported pattern syntax** (repo-relative paths, forward slashes):
+
+| Pattern | Matches | Example |
+|---------|---------|---------|
+| `dir/` or `dir` | Path equals `dir`, or starts with `dir/` | `vendor/` → `vendor/foo.ts` |
+| `*.ext` | Basename ends with `.ext` (any depth) | `*.lock` → `yarn.lock` |
+| anything else | Exact path match | `scripts/codegen.ts` |
+
+No `**`, `?`, or negation in v1. When staged files match ignore rules, the hook logs how many were skipped and does not require README updates for them.
 
 ### Default behavior (always on)
 

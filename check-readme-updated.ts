@@ -335,6 +335,76 @@ function findNearestReadme(codeFile: string, repoRoot: string): string | null {
     return null;
 }
 
+function parseIgnoreFile(content: string): string[] {
+    return content
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.startsWith('#'));
+}
+
+function loadIgnorePatternsFromPackageJson(repoRoot: string): string[] {
+    const pkgPath = join(repoRoot, 'package.json');
+    if (!existsSync(pkgPath)) {
+        return [];
+    }
+    try {
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as {
+            readmeEnforcer?: { ignore?: unknown };
+        };
+        const ignore = pkg.readmeEnforcer?.ignore;
+        if (!Array.isArray(ignore)) {
+            return [];
+        }
+        return ignore.filter((entry): entry is string => typeof entry === 'string');
+    } catch {
+        return [];
+    }
+}
+
+function loadIgnorePatterns(repoRoot: string): string[] {
+    const patterns: string[] = [];
+    const ignoreFilePath = join(repoRoot, '.readme-enforcerignore');
+    if (existsSync(ignoreFilePath)) {
+        try {
+            patterns.push(...parseIgnoreFile(readFileSync(ignoreFilePath, 'utf8')));
+        } catch {
+            // unreadable ignore file — skip
+        }
+    }
+    patterns.push(...loadIgnorePatternsFromPackageJson(repoRoot));
+    return patterns;
+}
+
+function matchesIgnorePattern(repoRelativePath: string, pattern: string): boolean {
+    const path = normalizeGitPath(repoRelativePath);
+    const trimmed = pattern.trim();
+    if (trimmed.length === 0) {
+        return false;
+    }
+
+    if (trimmed.startsWith('*.')) {
+        const suffix = trimmed.slice(1);
+        return basename(path).endsWith(suffix);
+    }
+
+    if (trimmed.includes('/')) {
+        const normalizedPattern = trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+        if (trimmed.endsWith('/')) {
+            return path === normalizedPattern || path.startsWith(`${normalizedPattern}/`);
+        }
+        return path === normalizedPattern;
+    }
+
+    return path === trimmed || path.startsWith(`${trimmed}/`);
+}
+
+function shouldIgnore(repoRelativePath: string, patterns: string[]): boolean {
+    if (patterns.length === 0) {
+        return false;
+    }
+    return patterns.some(pattern => matchesIgnorePattern(repoRelativePath, pattern));
+}
+
 function runStagedReadmeCheck(): number {
     const repoRoot = getGitTopLevel();
     if (!repoRoot) {
@@ -348,10 +418,16 @@ function runStagedReadmeCheck(): number {
         return 0;
     }
 
+    const ignorePatterns = loadIgnorePatterns(repoRoot);
     const readmeFiles: string[] = [];
     const codeFiles: string[] = [];
+    let ignoredCount = 0;
 
     for (const filePath of stagedFiles) {
+        if (shouldIgnore(filePath, ignorePatterns)) {
+            ignoredCount++;
+            continue;
+        }
         if (isReadmeFile(filePath)) {
             readmeFiles.push(filePath);
         } else {
@@ -359,8 +435,14 @@ function runStagedReadmeCheck(): number {
         }
     }
 
+    if (ignoredCount > 0) {
+        console.log(`Skipped ${ignoredCount} staged file(s) matching ignore rules.`);
+    }
+
     if (codeFiles.length === 0) {
-        console.log('Only README files staged - no additional README update required.');
+        if (readmeFiles.length > 0) {
+            console.log('Only README files staged - no additional README update required.');
+        }
         return 0;
     }
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- **Ignore configuration:** optional `.readme-enforcerignore` and/or `package.json` `"readmeEnforcer".ignore` patterns skip the staged-README check for matching paths (directories, `*.ext` extensions, or exact paths). Patterns from both sources are merged. Does not affect opt-in README reachability.
+
 ## 1.1.1
 
 - **Windows:** fix staged-README check when Git reports forward-slash paths but the filesystem used backslashes; all hook output paths now use forward slashes.

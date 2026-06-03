@@ -101,3 +101,98 @@ test('reported paths use forward slashes (Windows regression)', () => {
     assert.ok(out.includes('src/README.md'), 'expected forward-slash path in output');
     assert.ok(!/src\\README\.md/.test(out), 'output must not use backslashes in paths');
 });
+
+test('staged check passes when ignored directory is staged without README', () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'readme-staged-ignore-dir-'));
+    initRepoWithFiles(cwd, {
+        '.readme-enforcerignore': 'vendor/\n',
+        'vendor/a.ts': 'export {}\n',
+        'vendor/README.md': '# Vendor\n'
+    });
+    stageChanges(cwd, { 'vendor/a.ts': 'export {}\n// updated\n' });
+    const r = runStagedHook(cwd);
+    assert.equal(r.status, 0, r.stderr + r.stdout);
+    assert.match(r.stdout, /Skipped 1 staged file\(s\) matching ignore rules/);
+});
+
+test('staged check passes when ignored extension is staged without README', () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'readme-staged-ignore-ext-'));
+    initRepoWithFiles(cwd, {
+        '.readme-enforcerignore': '*.lock\n',
+        'yarn.lock': 'packages:\n',
+        'README.md': '# Root\n'
+    });
+    stageChanges(cwd, { 'yarn.lock': 'packages:\n# updated\n' });
+    const r = runStagedHook(cwd);
+    assert.equal(r.status, 0, r.stderr + r.stdout);
+    assert.match(r.stdout, /Skipped 1 staged file\(s\) matching ignore rules/);
+});
+
+test('staged check passes when exact ignored path is staged without README', () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'readme-staged-ignore-exact-'));
+    initRepoWithFiles(cwd, {
+        '.readme-enforcerignore': 'scripts/codegen.ts\n',
+        'scripts/codegen.ts': 'export {}\n',
+        'scripts/README.md': '# Scripts\n'
+    });
+    stageChanges(cwd, { 'scripts/codegen.ts': 'export {}\n// updated\n' });
+    const r = runStagedHook(cwd);
+    assert.equal(r.status, 0, r.stderr + r.stdout);
+    assert.match(r.stdout, /Skipped 1 staged file\(s\) matching ignore rules/);
+});
+
+test('staged check still fails for non-ignored code when directory is ignored', () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'readme-staged-ignore-mixed-'));
+    initRepoWithFiles(cwd, {
+        '.readme-enforcerignore': 'vendor/\n',
+        'vendor/a.ts': 'export {}\n',
+        'src/a.ts': 'export {}\n',
+        'src/README.md': '# Src\n'
+    });
+    stageChanges(cwd, {
+        'vendor/a.ts': 'export {}\n// vendor\n',
+        'src/a.ts': 'export {}\n// updated\n'
+    });
+    const r = runStagedHook(cwd);
+    assert.equal(r.status, 1, r.stdout);
+    const out = r.stderr + r.stdout;
+    assert.match(out, /src\/README\.md/);
+    assert.match(out, /Skipped 1 staged file\(s\) matching ignore rules/);
+});
+
+test('staged check respects package.json readmeEnforcer.ignore', () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'readme-staged-ignore-pkg-'));
+    initRepoWithFiles(cwd, {
+        'package.json': JSON.stringify({
+            name: 'test-app',
+            readmeEnforcer: { ignore: ['generated/'] }
+        }, null, 2) + '\n',
+        'generated/a.ts': 'export {}\n',
+        'generated/README.md': '# Generated\n'
+    });
+    stageChanges(cwd, { 'generated/a.ts': 'export {}\n// updated\n' });
+    const r = runStagedHook(cwd);
+    assert.equal(r.status, 0, r.stderr + r.stdout);
+    assert.match(r.stdout, /Skipped 1 staged file\(s\) matching ignore rules/);
+});
+
+test('staged check merges ignore patterns from file and package.json', () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'readme-staged-ignore-merge-'));
+    initRepoWithFiles(cwd, {
+        '.readme-enforcerignore': 'vendor/\n',
+        'package.json': JSON.stringify({
+            name: 'test-app',
+            readmeEnforcer: { ignore: ['*.lock'] }
+        }, null, 2) + '\n',
+        'vendor/a.ts': 'export {}\n',
+        'yarn.lock': 'packages:\n',
+        'README.md': '# Root\n'
+    });
+    stageChanges(cwd, {
+        'vendor/a.ts': 'export {}\n// vendor\n',
+        'yarn.lock': 'packages:\n# updated\n'
+    });
+    const r = runStagedHook(cwd);
+    assert.equal(r.status, 0, r.stderr + r.stdout);
+    assert.match(r.stdout, /Skipped 2 staged file\(s\) matching ignore rules/);
+});
