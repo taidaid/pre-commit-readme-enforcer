@@ -9,7 +9,7 @@
 
 import { execSync } from 'child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
-import { basename, dirname, join, posix } from 'path';
+import { basename, join, posix, relative, sep } from 'path';
 
 const INTERLINK_FLAG = '--enforce-readme-interlink';
 const INTERLINK_ENV = 'README_ENFORCE_INTERLINK';
@@ -40,10 +40,27 @@ function getGitTopLevel(): string | null {
     return out.length > 0 ? out : null;
 }
 
+function normalizeGitPath(filePath: string): string {
+    return filePath.replace(/\\/g, '/');
+}
+
+function toRepoRelativePosix(repoRoot: string, absolutePath: string): string {
+    const rel = relative(repoRoot, absolutePath);
+    if (rel.startsWith('..')) {
+        return normalizeGitPath(absolutePath);
+    }
+    const posixPath = rel.split(sep).join('/');
+    return posixPath === '' ? '.' : posixPath;
+}
+
 function getStagedFiles(): string[] {
     try {
         const result = execSync('git diff --cached --name-only', { encoding: 'utf8' });
-        return result.trim().split('\n').filter(f => f.trim().length > 0);
+        return result
+            .trim()
+            .split('\n')
+            .filter(f => f.trim().length > 0)
+            .map(normalizeGitPath);
     } catch {
         console.error('Error: Unable to get staged files from git');
         return [];
@@ -282,25 +299,34 @@ function runReadmeReachability(): number {
     return 1;
 }
 
-function findNearestReadme(filePath: string): string | null {
-    let currentDir = dirname(filePath);
+function findNearestReadme(codeFile: string, repoRoot: string): string | null {
+    const normalizedCode = normalizeGitPath(codeFile);
+    let currentDirPosix = posix.dirname(normalizedCode);
 
     while (true) {
+        const fsDir =
+            currentDirPosix === '.' || currentDirPosix === ''
+                ? repoRoot
+                : join(repoRoot, ...currentDirPosix.split('/').filter(Boolean));
+
         try {
-            const items = readdirSync(currentDir);
+            const items = readdirSync(fsDir);
 
             for (const item of items) {
-                const itemPath = join(currentDir, item);
-                if (existsSync(itemPath) && statSync(itemPath).isFile() && isReadmeFile(item)) {
-                    return itemPath;
+                const absPath = join(fsDir, item);
+                if (existsSync(absPath) && statSync(absPath).isFile() && isReadmeFile(item)) {
+                    return toRepoRelativePosix(repoRoot, absPath);
                 }
             }
 
-            const parentDir = dirname(currentDir);
-            if (parentDir === currentDir) {
+            if (currentDirPosix === '.' || currentDirPosix === '') {
                 break;
             }
-            currentDir = parentDir;
+            const parentPosix = posix.dirname(currentDirPosix);
+            if (parentPosix === currentDirPosix) {
+                break;
+            }
+            currentDirPosix = parentPosix;
         } catch {
             break;
         }
@@ -310,6 +336,11 @@ function findNearestReadme(filePath: string): string | null {
 }
 
 function runStagedReadmeCheck(): number {
+    const repoRoot = getGitTopLevel();
+    if (!repoRoot) {
+        return 1;
+    }
+
     const stagedFiles = getStagedFiles();
 
     if (stagedFiles.length === 0) {
@@ -336,7 +367,7 @@ function runStagedReadmeCheck(): number {
     const requiredReadmes = new Set<string>();
 
     for (const codeFile of codeFiles) {
-        const nearestReadme = findNearestReadme(codeFile);
+        const nearestReadme = findNearestReadme(codeFile, repoRoot);
         if (nearestReadme) {
             requiredReadmes.add(nearestReadme);
         }

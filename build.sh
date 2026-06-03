@@ -1,42 +1,20 @@
 #!/bin/bash
-# Build script to compile TypeScript and make the result executable
+# Cross-platform setup for this repository (delegates to npm; optional Unix extras).
 
 set -e
 
-echo "🔧 Installing dependencies..."
-if command -v npm &> /dev/null; then
-    npm install
-elif command -v yarn &> /dev/null; then
-    yarn install
-else
-    echo "❌ Error: npm or yarn is required"
-    exit 1
+npm run setup
+
+echo "node check-readme-updated.js" > .husky/pre-commit
+
+if [ -f check-readme-updated.js ] && ! head -1 check-readme-updated.js | grep -q '^#!/'; then
+    {
+        echo '#!/usr/bin/env node'
+        cat check-readme-updated.js
+    } > check-readme-updated.js.tmp
+    mv check-readme-updated.js.tmp check-readme-updated.js
 fi
 
-echo "🔨 Compiling TypeScript..."
-npx tsc check-readme-updated.ts --target ES2020 --module CommonJS
+chmod +x check-readme-updated.js .husky/pre-commit 2>/dev/null || true
 
-echo "🎯 Adding shebang to compiled JavaScript..."
-# Add shebang to the compiled JavaScript
-{
-    echo '#!/usr/bin/env node'
-    cat check-readme-updated.js
-} > check-readme-updated.js.tmp
-
-# Replace the original file
-mv check-readme-updated.js.tmp check-readme-updated.js
-
-echo "✅ Making the compiled script executable..."
-chmod +x check-readme-updated.js
-
-echo "🔗 Setting up git hooks with Husky..."
-npx husky
-
-echo "🔄 Updating hook to newer Husky format..."
-echo "node check-readme-updated.js" > .husky/pre-commit
-chmod +x .husky/pre-commit
-
-echo "✨ Build complete! You can now:"
-echo "  - Run the hook directly: ./check-readme-updated.js"
-echo "  - Test the hook: git commit (the hook is already set up)"
-echo "  - The hook will automatically run on every commit" 
+echo "Build complete. Run: npm test"

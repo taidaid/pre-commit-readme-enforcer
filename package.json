@@ -1,6 +1,6 @@
 {
   "name": "pre-commit-readme-enforcer",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Pre-commit hook: stage nearest READMEs with code changes; optional root README reachability over relative Markdown links",
   "repository": {
     "type": "git",
@@ -18,7 +18,8 @@
     "build": "tsc check-readme-updated.ts --outDir . --target ES2020 --module CommonJS",
     "start": "node check-readme-updated.js",
     "dev": "ts-node check-readme-updated.ts",
-    "test": "npm run build && node --test test/readme-reachability.test.cjs && node check-readme-updated.js",
+    "test": "npm run build && node --test test/readme-reachability.test.cjs && node --test test/staged-readme.test.cjs && node check-readme-updated.js",
+    "setup": "npm install && npm run build && npx husky",
     "prepack": "npm run build",
     "prepublishOnly": "npm test"
   },
